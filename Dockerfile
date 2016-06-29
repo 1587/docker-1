@@ -3,9 +3,8 @@ FROM 1587/osc-builder:stage3_openjdk
 RUN apt-get update && apt-get install -y git curl zip && rm -rf /var/lib/apt/lists/*
 
 ENV JENKINS_HOME /var/jenkins_home
-echo "export JENKINS_HOME=${JENKINS_HOME}" >> /etc/profile
 ENV JENKINS_SLAVE_AGENT_PORT 50000
-echo "export JENKINS_SLAVE_AGENT_PORT=${JENKINS_SLAVE_AGENT_PORT}" >> /etc/profile
+
 
 ARG user=jenkins
 ARG group=jenkins
@@ -28,9 +27,8 @@ VOLUME /var/jenkins_home
 RUN mkdir -p /usr/share/jenkins/ref/init.groovy.d
 
 ENV TINI_VERSION 0.9.0
-echo "export TINI_VERSION=${TINI_VERSION}" >> /etc/profile
 ENV TINI_SHA fa23d1e20732501c3bb8eeeca423c89ac80ed452
-echo "export TINI_SHA=${TINI_SHA}" >> /etc/profile
+
 # Use tini as subreaper in Docker container to adopt zombie processes 
 RUN curl -fsSL https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini-static -o /bin/tini && chmod +x /bin/tini \
   && echo "$TINI_SHA  /bin/tini" | sha1sum -c -
@@ -39,10 +37,8 @@ COPY init.groovy /usr/share/jenkins/ref/init.groovy.d/tcp-slave-agent-port.groov
 
 ARG JENKINS_VERSION
 ENV JENKINS_VERSION ${JENKINS_VERSION:-1.651.3}
-echo "export JENKINS_VERSION=${JENKINS_VERSION}" >> /etc/profile
 ARG JENKINS_SHA
 ENV JENKINS_SHA ${JENKINS_SHA:-564e49fbd180d077a22a8c7bb5b8d4d58d2a18ce}
-echo "export JENKINS_SHA=${JENKINS_SHA}" >> /etc/profile
 
 # could use ADD but this one does not check Last-Modified header 
 # see https://github.com/docker/docker/issues/8331
@@ -50,7 +46,7 @@ RUN curl -fsSL http://repo.jenkins-ci.org/public/org/jenkins-ci/main/jenkins-war
   && echo "$JENKINS_SHA  /usr/share/jenkins/jenkins.war" | sha1sum -c -
 
 ENV JENKINS_UC https://updates.jenkins.io
-echo "export JENKINS_UC=${JENKINS_UC}" >> /etc/profile
+
 RUN chown -R ${user} "$JENKINS_HOME" /usr/share/jenkins/ref
 
 # for main web interface:
@@ -60,9 +56,18 @@ EXPOSE 8080
 EXPOSE 50000
 
 ENV COPY_REFERENCE_FILE_LOG $JENKINS_HOME/copy_reference_file.log
-echo "export COPY_REFERENCE_FILE_LOG=${COPY_REFERENCE_FILE_LOG}" >> /etc/profile
+RUN echo "export JENKINS_HOME=${JENKINS_HOME}" >> /etc/profile \
+    && echo "export JENKINS_SLAVE_AGENT_PORT=${JENKINS_SLAVE_AGENT_PORT}" >> /etc/profile \
+    && echo "export TINI_SHA=${TINI_SHA}" >> /etc/profile \
+    && echo "export TINI_VERSION=${TINI_VERSION}" >> /etc/profile \
+    && echo "export JENKINS_VERSION=${JENKINS_VERSION}" >> /etc/profile \
+    && echo "export JENKINS_SHA=${JENKINS_SHA}" >> /etc/profile \
+    && echo "export JENKINS_UC=${JENKINS_UC}" >> /etc/profile \
+    && echo "export COPY_REFERENCE_FILE_LOG=${COPY_REFERENCE_FILE_LOG}" >> /etc/profile
+    
+    
+    
 USER ${user}
-
 COPY jenkins.sh /usr/local/bin/jenkins.sh
 ENTRYPOINT ["/bin/tini", "--", "/usr/local/bin/jenkins.sh"]
 
