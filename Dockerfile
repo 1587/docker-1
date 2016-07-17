@@ -1,4 +1,4 @@
-FROM 1587/osc-builder:stage3_openjdk
+FROM 1587/osc-builder:stage3_openjdk_nocross
 
 RUN apt-get update && apt-get install -y git curl zip && rm -rf /var/lib/apt/lists/*
 
